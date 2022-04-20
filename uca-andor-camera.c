@@ -116,7 +116,62 @@ G_DEFINE_TYPE_WITH_CODE (UcaAndorCamera, uca_andor_camera, UCA_TYPE_CAMERA,
  * @UCA_ANDOR_CAMERA_FAN_SPEED_ON: high speed (highest heat sink cooling efficienty)
  */
 
+typedef enum {
+    CAMERATYPE_UNKNOWN,
+    CAMERATYPE_NEO_55_CL3,
+    CAMERATYPE_MARANA_4B_11,
+    CAMERATYPE_MARANA_4B_65,
+    N_CAMERATYPES,
+} andor_camera_type;
+
+static andor_camera_type
+get_camera_type_from_string(const gchar *model)
+{
+    if (g_strstr_len(model, -1, "NEO"))
+        return CAMERATYPE_NEO_55_CL3;
+    
+    if (g_strstr_len(model, -1, "MARANA")) {
+        if (g_strstr_len(model, -1, "11"))
+            return CAMERATYPE_MARANA_4B_11;
+        return CAMERATYPE_MARANA_4B_65;
+    }
+
+    return CAMERATYPE_UNKNOWN;
+}
+
+typedef struct {
+    andor_camera_type type;
+    int trigger_mode_internal_index;
+    int trigger_mode_software_index;
+    int trigger_mode_external_index;
+    gboolean has_internal_memory;
+    guint64 internal_memory_size;
+    gboolean has_global_shutter;
+} andor_features_entry;
+
+static andor_features_entry andor_features_map[] = {
+    /* 2017-09: Neo camera trigger enum definition differs from documentation */
+    {CAMERATYPE_NEO_55_CL3,   0,  4,  6, TRUE, 3981262199, TRUE},
+    /* 2022-04: Marana camera seems to match documentation */
+    {CAMERATYPE_MARANA_4B_11, 0,  1,  2, FALSE,    0,      FALSE},
+    {CAMERATYPE_MARANA_4B_65, 0,  1,  2, FALSE,    0,      FALSE},
+    {CAMERATYPE_UNKNOWN,     -1, -1, -1, FALSE,    0,      FALSE},
+};
+
+static andor_features_entry
+get_andor_features (andor_camera_type type) {
+    int i;
+    for (i = 0; i < N_CAMERATYPES; i++) {
+        andor_features_entry entry = andor_features_map[i];
+        if (entry.type == type)
+            return entry;
+    }
+    return get_andor_features(CAMERATYPE_UNKNOWN);
+}
+
 struct _UcaAndorCameraPrivate {
+    andor_features_entry features;
+
     guint camera_number;
     AT_H handle;
     GError *construct_error;
@@ -370,6 +425,12 @@ check_access (UcaAndorCameraPrivate *priv, const AT_WC* feature, int access, gbo
     }
 
     return FALSE;         /* by default .. should not be encountered */
+}
+
+static gboolean
+is_marana (UcaAndorCameraPrivate *priv)
+{
+    return priv->features.type == CAMERATYPE_MARANA_4B_11 || priv->features.type == CAMERATYPE_MARANA_4B_65;
 }
 
 static void
@@ -1929,6 +1990,28 @@ uca_andor_camera_class_init (UcaAndorCameraClass *klass)
 }
 
 static void
+debug_andor_camera_enum(AT_H handle, const AT_WC *feature) {
+    int n_values, cur_value, index;
+    AT_BOOL implemented;
+    AT_WC *value_name = g_malloc0(1023 * sizeof(AT_WC));
+
+    AT_GetEnumCount(handle, feature, &n_values);
+    g_debug("%S: count=%d", feature, n_values);
+
+    // not all indexes may be implemented on the camera
+    for (index = 0; cur_value < n_values; index++) {
+        AT_IsEnumIndexImplemented(handle, feature, index, &implemented);
+        if (implemented) {
+            cur_value++;
+            AT_GetEnumStringByIndex(handle, feature, index, value_name, 1023);
+            g_debug("%S: index=%d, name=%S", feature, index, value_name);
+        }
+    }
+
+    g_free(value_name);
+}
+
+static void
 uca_andor_camera_init (UcaAndorCamera *self)
 {
     UcaAndorCameraPrivate *priv;
@@ -1987,6 +2070,8 @@ uca_andor_camera_init (UcaAndorCamera *self)
     else {
         priv->name = g_strdup ("SIMCAM CMOS (model)");
     }
+
+    priv->features = get_andor_features(get_camera_type_from_string(priv->name));
 
     error_number = AT_GetFloat (handle, L"ExposureTime", &priv->exp_time);
     if (!check_error (error_number, "Cannot read ExposureTime", error))
@@ -2121,11 +2206,13 @@ uca_andor_camera_init (UcaAndorCamera *self)
         error_number = AT_GetFloat (handle, L"MaxInterfaceTransferRate", &priv->max_interface_transfer_rate);
         if (!check_error (error_number, "Cannot read MaxInterfaceTransferRate", error)) return;
 
-        error_number = AT_SetFloat (handle, L"FrameRate",  (double) (priv->max_interface_transfer_rate - MARGIN));
-        if (!check_error (error_number, "Cannot set FrameRate to MaxInterfaceTransferRate", error)) return;
+        if (!is_marana(priv)) {
+            error_number = AT_SetFloat (handle, L"FrameRate",  (double) (priv->max_interface_transfer_rate - MARGIN));
+            if (!check_error (error_number, "Cannot set FrameRate to MaxInterfaceTransferRate", error)) return;
 
-        error_number = AT_GetBool (handle, L"FastAOIFrameRateEnable", &priv->fast_aoi_frame_rate_enable);
-        if (!check_error (error_number, "Cannot read FastAOIFrameRateEnable", error)) return;
+            error_number = AT_GetBool (handle, L"FastAOIFrameRateEnable", &priv->fast_aoi_frame_rate_enable);
+            if (!check_error (error_number, "Cannot read FastAOIFrameRateEnable", error)) return;
+        }
 
         error_number = AT_GetEnumIndex (handle, L"TemperatureStatus", &TempInt);
         if (!check_error (error_number, "Cannot read TemperatureStatus", error)) {return;}
@@ -2188,6 +2275,18 @@ uca_andor_camera_init (UcaAndorCamera *self)
 
         error_number = AT_SetBool (handle, L"MetadataTimestamp", TRUE);
         if (!check_error (error_number, "Could not enable METADATA", error)) return;
+
+        // debug and show enumerated values
+        debug_andor_camera_enum (handle, L"TriggerMode");
+        debug_andor_camera_enum (handle, L"FanMode");
+        debug_andor_camera_enum (handle, L"CycleMode");
+        debug_andor_camera_enum (handle, L"PixelEncoding");
+        debug_andor_camera_enum (handle, L"ElectronicShutteringMode");
+        debug_andor_camera_enum (handle, L"PixelReadoutRate");
+        debug_andor_camera_enum (handle, L"BitDepth");
+        debug_andor_camera_enum (handle, L"SimplePreAmpGainControl");
+        debug_andor_camera_enum (handle, L"TemperatureStatus");
+        debug_andor_camera_enum (handle, L"AOIBinning");
     }
 
     /* Uca Units attribution (all properties that does not match the UcaUnit enum are just ignored...) */

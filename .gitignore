@@ -1,3 +1,4 @@
 build*/
+uca-andor-enums.[ch]
 *~
 .vscode/

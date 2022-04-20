@@ -51,9 +51,12 @@ typedef enum {						/* PixelReadoutRate enumerated definition */
  *	| 100 MHz	| 200 MHz	| 2	|
  *	| (not def.)	| 280 MHz	| 3	|
  */
-	UCA_ANDOR_CAMERA_PIXEL_READOUT_RATE_100MHZ = 1,	/* offset */
+	UCA_ANDOR_CAMERA_PIXEL_READOUT_RATE_100MHZ = 1,	/* offset; 2022 - leaving for compatibility */
 	UCA_ANDOR_CAMERA_PIXEL_READOUT_RATE_200MHZ,
-	UCA_ANDOR_CAMERA_PIXEL_READOUT_RATE_280MHZ
+	UCA_ANDOR_CAMERA_PIXEL_READOUT_RATE_280MHZ,
+	/* MARANA 4.2B-6 readout rates */
+	UCA_ANDOR_CAMERA_PIXEL_READOUT_RATE_180MHZ,
+	UCA_ANDOR_CAMERA_PIXEL_READOUT_RATE_310MHZ,
 }  UcaAndorCameraPixelReadoutRate;
 
 typedef enum {						/* FanSpeed enumerated definition */
