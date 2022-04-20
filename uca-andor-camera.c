@@ -2013,6 +2013,9 @@ debug_andor_camera_enum(AT_H handle, const AT_WC *feature) {
         else if (implemented && !available) {
             g_debug("%S: index=%d implemented but not available", feature, index);
         }
+        else if (!implemented && available) {
+            g_debug("%S: index=%d available but not implemented", feature, index);
+        }
     }
 
     g_free(value_name);
