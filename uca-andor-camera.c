@@ -1991,8 +1991,11 @@ uca_andor_camera_class_init (UcaAndorCameraClass *klass)
 
 static void
 debug_andor_camera_enum(AT_H handle, const AT_WC *feature) {
+    if (!getenv("G_MESSAGES_DEBUG"))
+        return;
+
     int n_values, cur_value, index;
-    AT_BOOL implemented;
+    AT_BOOL implemented, available;
     AT_WC *value_name = g_malloc0(1023 * sizeof(AT_WC));
 
     AT_GetEnumCount(handle, feature, &n_values);
@@ -2001,10 +2004,14 @@ debug_andor_camera_enum(AT_H handle, const AT_WC *feature) {
     // not all indexes may be implemented on the camera
     for (index = 0; cur_value < n_values; index++) {
         AT_IsEnumIndexImplemented(handle, feature, index, &implemented);
-        if (implemented) {
+        AT_IsEnumIndexAvailable(handle, feature, index, &available);
+        if (implemented && available) {
             cur_value++;
             AT_GetEnumStringByIndex(handle, feature, index, value_name, 1023);
             g_debug("%S: index=%d, name=%S", feature, index, value_name);
+        }
+        else if (implemented && !available) {
+            g_debug("%S: index=%d implemented but not available", feature, index, value_name);
         }
     }
 
