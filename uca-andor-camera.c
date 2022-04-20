@@ -1325,11 +1325,12 @@ uca_andor_camera_set_property (GObject *object, guint property_id, const GValue 
                     break;
                 default:
                     g_warning("Invalid entry, trigger mode set to AUTO by default");
-                    val_enum=0;
-                    out_index=0;
+                    val_enum=UCA_CAMERA_TRIGGER_SOURCE_AUTO;
+                    out_index=priv->features.trigger_mode_internal_index;
                     break;
             }
 
+            g_debug("get TriggerMode: converted %d => %d", val_enum, out_index);
             if (write_enum_index(priv, L"TriggerMode", out_index))
                 priv->trigger_mode = val_enum;
             break;
@@ -1387,7 +1388,8 @@ uca_andor_camera_set_property (GObject *object, guint property_id, const GValue 
                 out_index = priv->features.spagc_16bit_index;
                 break;
         }
-        
+
+        g_debug("get SimplePreAmpGainControl: converting %d => %d", val_enum, out_index);
         if (write_enum_index(priv, L"SimplePreAmpGainControl", out_index))
             priv->simple_pre_amp_gain_control = val_enum;
         break;
@@ -1423,6 +1425,7 @@ uca_andor_camera_set_property (GObject *object, guint property_id, const GValue 
                 break;
         }
 
+        g_debug("set PixelReadoutRate: converting %d => %d", val_enum, out_index);
         if (write_enum_index(priv, L"PixelReadoutRate", out_index))
             priv->pixel_readout_rate = val_enum;
         break;
@@ -1566,8 +1569,9 @@ uca_andor_camera_get_property (GObject *object, guint property_id, GValue *value
                     priv->trigger_mode = UCA_CAMERA_TRIGGER_SOURCE_SOFTWARE;
                 if (val_enum == priv->features.trigger_mode_external_index)
                     priv->trigger_mode = UCA_CAMERA_TRIGGER_SOURCE_EXTERNAL;
-                else
+                if (val_enum == priv->features.trigger_mode_internal_index)
                     priv->trigger_mode = UCA_CAMERA_TRIGGER_SOURCE_AUTO;
+                g_debug("get TriggerMode: converted %d => %d", val_enum, priv->trigger_mode);
                 g_value_set_enum (value, priv->trigger_mode);
             }
             break;
@@ -1623,6 +1627,7 @@ uca_andor_camera_get_property (GObject *object, guint property_id, GValue *value
                     priv->simple_pre_amp_gain_control = UCA_ANDOR_CAMERA_SPAGC_12BIT;
                 if (val_enum == priv->features.spagc_16bit_index)
                     priv->simple_pre_amp_gain_control = UCA_ANDOR_CAMERA_SPAGC_16BIT;
+                g_debug("get SimplePreAmpGainControl: converted %d => %d", val_enum, priv->simple_pre_amp_gain_control);
                 g_value_set_enum (value, priv->simple_pre_amp_gain_control);
             }
             break;
@@ -1667,6 +1672,7 @@ uca_andor_camera_get_property (GObject *object, guint property_id, GValue *value
                     priv->pixel_readout_rate = UCA_ANDOR_CAMERA_PIXEL_READOUT_RATE_280MHZ;
                 if (val_enum == priv->features.pixel_rate_310mhz_index)
                     priv->pixel_readout_rate = UCA_ANDOR_CAMERA_PIXEL_READOUT_RATE_310MHZ;
+                g_debug("get PixelReadoutRate: converted %d => %d", val_enum, priv->pixel_readout_rate);
                 g_value_set_enum (value, priv->pixel_readout_rate);
             }
             break;
