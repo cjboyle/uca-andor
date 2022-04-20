@@ -1994,7 +1994,7 @@ debug_andor_camera_enum(AT_H handle, const AT_WC *feature) {
     if (!getenv("G_MESSAGES_DEBUG"))
         return;
 
-    int n_values, cur_value, index;
+    int n_values, cur_value = 0, index = 0;
     AT_BOOL implemented, available;
     AT_WC *value_name = g_malloc0(1023 * sizeof(AT_WC));
 
