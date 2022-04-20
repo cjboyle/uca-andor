@@ -1330,7 +1330,7 @@ uca_andor_camera_set_property (GObject *object, guint property_id, const GValue 
                     break;
             }
 
-            g_debug("get TriggerMode: converted %d => %d", val_enum, out_index);
+            g_debug("set TriggerMode: write UCA:%d => AT:%d", val_enum, out_index);
             if (write_enum_index(priv, L"TriggerMode", out_index))
                 priv->trigger_mode = val_enum;
             break;
@@ -1389,7 +1389,7 @@ uca_andor_camera_set_property (GObject *object, guint property_id, const GValue 
                 break;
         }
 
-        g_debug("get SimplePreAmpGainControl: converting %d => %d", val_enum, out_index);
+        g_debug("set SimplePreAmpGainControl: write UCA:%d => AT:%d", val_enum, out_index);
         if (write_enum_index(priv, L"SimplePreAmpGainControl", out_index))
             priv->simple_pre_amp_gain_control = val_enum;
         break;
@@ -1425,7 +1425,7 @@ uca_andor_camera_set_property (GObject *object, guint property_id, const GValue 
                 break;
         }
 
-        g_debug("set PixelReadoutRate: converting %d => %d", val_enum, out_index);
+        g_debug("set PixelReadoutRate: write UCA:%d => AT:%d", val_enum, out_index);
         if (write_enum_index(priv, L"PixelReadoutRate", out_index))
             priv->pixel_readout_rate = val_enum;
         break;
@@ -1571,7 +1571,7 @@ uca_andor_camera_get_property (GObject *object, guint property_id, GValue *value
                     priv->trigger_mode = UCA_CAMERA_TRIGGER_SOURCE_EXTERNAL;
                 if (val_enum == priv->features.trigger_mode_internal_index)
                     priv->trigger_mode = UCA_CAMERA_TRIGGER_SOURCE_AUTO;
-                g_debug("get TriggerMode: converted %d => %d", val_enum, priv->trigger_mode);
+                g_debug("get TriggerMode: read AT:%d => UCA:%d", val_enum, priv->trigger_mode);
                 g_value_set_enum (value, priv->trigger_mode);
             }
             break;
@@ -1627,7 +1627,7 @@ uca_andor_camera_get_property (GObject *object, guint property_id, GValue *value
                     priv->simple_pre_amp_gain_control = UCA_ANDOR_CAMERA_SPAGC_12BIT;
                 if (val_enum == priv->features.spagc_16bit_index)
                     priv->simple_pre_amp_gain_control = UCA_ANDOR_CAMERA_SPAGC_16BIT;
-                g_debug("get SimplePreAmpGainControl: converted %d => %d", val_enum, priv->simple_pre_amp_gain_control);
+                g_debug("get SimplePreAmpGainControl: read AT:%d => UCA:%d", val_enum, priv->simple_pre_amp_gain_control);
                 g_value_set_enum (value, priv->simple_pre_amp_gain_control);
             }
             break;
@@ -1672,7 +1672,7 @@ uca_andor_camera_get_property (GObject *object, guint property_id, GValue *value
                     priv->pixel_readout_rate = UCA_ANDOR_CAMERA_PIXEL_READOUT_RATE_280MHZ;
                 if (val_enum == priv->features.pixel_rate_310mhz_index)
                     priv->pixel_readout_rate = UCA_ANDOR_CAMERA_PIXEL_READOUT_RATE_310MHZ;
-                g_debug("get PixelReadoutRate: converted %d => %d", val_enum, priv->pixel_readout_rate);
+                g_debug("get PixelReadoutRate: read AT:%d => UCA:%d", val_enum, priv->pixel_readout_rate);
                 g_value_set_enum (value, priv->pixel_readout_rate);
             }
             break;
@@ -2355,15 +2355,15 @@ uca_andor_camera_init (UcaAndorCamera *self)
 
         // debug and show enumerated values
         debug_andor_camera_enum (handle, L"TriggerMode");
-        debug_andor_camera_enum (handle, L"FanMode");
-        debug_andor_camera_enum (handle, L"CycleMode");
+        // debug_andor_camera_enum (handle, L"FanMode");
+        // debug_andor_camera_enum (handle, L"CycleMode");
         debug_andor_camera_enum (handle, L"PixelEncoding");
-        debug_andor_camera_enum (handle, L"ElectronicShutteringMode");
+        // debug_andor_camera_enum (handle, L"ElectronicShutteringMode");
         debug_andor_camera_enum (handle, L"PixelReadoutRate");
         debug_andor_camera_enum (handle, L"BitDepth");
         debug_andor_camera_enum (handle, L"SimplePreAmpGainControl");
-        debug_andor_camera_enum (handle, L"TemperatureStatus");
-        debug_andor_camera_enum (handle, L"AOIBinning");
+        // debug_andor_camera_enum (handle, L"TemperatureStatus");
+        // debug_andor_camera_enum (handle, L"AOIBinning");
     }
 
     /* Uca Units attribution (all properties that does not match the UcaUnit enum are just ignored...) */
