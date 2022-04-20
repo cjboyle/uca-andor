@@ -34,6 +34,7 @@ typedef enum {
 typedef enum {						/* SimplePreAmpGainControl enumerated definition */
 	UCA_ANDOR_CAMERA_SPAGC_11BIT_HIGH_CAPACITY,
 	UCA_ANDOR_CAMERA_SPAGC_11BIT_LOW_NOISE,
+	UCA_ANDOR_CAMERA_SPAGC_12BIT,
 	UCA_ANDOR_CAMERA_SPAGC_16BIT
 }  UcaAndorCameraSPAGC;
 

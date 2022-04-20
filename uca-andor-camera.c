@@ -120,7 +120,7 @@ typedef enum {
     CAMERATYPE_UNKNOWN,
     CAMERATYPE_NEO_55_CL3,
     CAMERATYPE_MARANA_4B_11,
-    CAMERATYPE_MARANA_4B_65,
+    CAMERATYPE_MARANA_4B_6,
     N_CAMERATYPES,
 } andor_camera_type;
 
@@ -133,7 +133,7 @@ get_camera_type_from_string(const gchar *model)
     if (g_strstr_len(model, -1, "MARANA")) {
         if (g_strstr_len(model, -1, "11"))
             return CAMERATYPE_MARANA_4B_11;
-        return CAMERATYPE_MARANA_4B_65;
+        return CAMERATYPE_MARANA_4B_6;
     }
 
     return CAMERATYPE_UNKNOWN;
@@ -141,9 +141,22 @@ get_camera_type_from_string(const gchar *model)
 
 typedef struct {
     andor_camera_type type;
+
     int trigger_mode_internal_index;
     int trigger_mode_software_index;
     int trigger_mode_external_index;
+
+    int pixel_rate_100mhz_index;
+    int pixel_rate_180mhz_index;
+    int pixel_rate_200mhz_index;
+    int pixel_rate_280mhz_index;
+    int pixel_rate_310mhz_index;
+
+    int spagc_11bit_hc_index;
+    int spagc_11bit_ln_index;
+    int spagc_12bit_index;
+    int spagc_16bit_index;
+
     gboolean has_internal_memory;
     guint64 internal_memory_size;
     gboolean has_global_shutter;
@@ -151,11 +164,27 @@ typedef struct {
 
 static andor_features_entry andor_features_map[] = {
     /* 2017-09: Neo camera trigger enum definition differs from documentation */
-    {CAMERATYPE_NEO_55_CL3,   0,  4,  6, TRUE, 3981262199, TRUE},
+    {CAMERATYPE_NEO_55_CL3,
+        0, 4, 6, 
+        1, -1, 2, 3, -1,
+        0, 1, -1, 2,
+        TRUE, 3981262199, TRUE},
     /* 2022-04: Marana camera seems to match documentation */
-    {CAMERATYPE_MARANA_4B_11, 0,  1,  2, FALSE,    0,      FALSE},
-    {CAMERATYPE_MARANA_4B_65, 0,  1,  2, FALSE,    0,      FALSE},
-    {CAMERATYPE_UNKNOWN,     -1, -1, -1, FALSE,    0,      FALSE},
+    {CAMERATYPE_MARANA_4B_11,
+        0, 1, 2,
+        -1, -1, 1, -1, -1,
+        -1, -1, 0, 1,
+        FALSE, 0, FALSE},
+    {CAMERATYPE_MARANA_4B_6,
+        0, 1, 2,
+        -1, -1, -1, 0, 1,
+        -1, -1, 0, 1,
+        FALSE, 0, FALSE},
+    {CAMERATYPE_UNKNOWN,
+        -1, -1, -1,
+        -1, -1, -1, -1, -1,
+        -1, -1, -1, -1,
+        FALSE, 0, FALSE},
 };
 
 static andor_features_entry
@@ -430,7 +459,7 @@ check_access (UcaAndorCameraPrivate *priv, const AT_WC* feature, int access, gbo
 static gboolean
 is_marana (UcaAndorCameraPrivate *priv)
 {
-    return priv->features.type == CAMERATYPE_MARANA_4B_11 || priv->features.type == CAMERATYPE_MARANA_4B_65;
+    return priv->features.type == CAMERATYPE_MARANA_4B_11 || priv->features.type == CAMERATYPE_MARANA_4B_6;
 }
 
 static void
@@ -1249,6 +1278,8 @@ uca_andor_camera_set_property (GObject *object, guint property_id, const GValue 
     gint val_enum = 0;
     gboolean val_bool = FALSE;
 
+    int out_index = -1;
+
     switch (property_id) {
         case PROP_EXPOSURE_TIME:
             val_double = g_value_get_double (value);
@@ -1279,34 +1310,27 @@ uca_andor_camera_set_property (GObject *object, guint property_id, const GValue 
         else g_warning("Cannot modify 'ROI_y0' while 'vertically_centre_roi' is enabled");
             break;
     case PROP_TRIGGER_SOURCE:
-/* NOTE: Libuca's trigger_source enum and andor's TriggerMode enum are different -> need harcodded attribution
- * WARNING : experimentally read enum on actual camera is different from definition in Andor's documentation :
- *    | Index    | LIBUCA    | ANDOR DOC        | ACTUAL CAMERA                |
- *    |-------|---------------|-----------------------|---------------------------------------|
- *    | 0    | AUTO        | Internal        | Internal                |
- *    | 1    | SOFTWARE    | Software        | External Level Transition        |
- *    | 2    | EXTERNAL    | External        | External Start            |
- *    | 3    | (not def.)    | External Start    | External Exposure            |
- *    | 4    | (not def.)    | External Exposure    | Software                |
- *    | 5    | (not def.)    | (not def.)        | Advanced                |
- *    | 6    | (not def.)    | (not def.)        | External                |
- */
             val_enum = g_value_get_enum (value);
+
+            out_index = -1;
             switch (val_enum) {
-            case UCA_CAMERA_TRIGGER_SOURCE_AUTO:                /* -> hardcodded attribution : _AUTO (0)    -> "Internal" (0) */
-                break;
-            case UCA_CAMERA_TRIGGER_SOURCE_SOFTWARE:
-                val_enum=4;                        /* -> hardcodded attribution : _SOFTWARE (1)    -> "Software" (4) */
-                break;
-            case UCA_CAMERA_TRIGGER_SOURCE_EXTERNAL:
-                val_enum=6;                        /* -> hardcodded attribution : _EXTERNAL (2)    -> "External" (6) */
-                break;
-            default:
-                g_warning("Invalid entry, trigger mode set to AUTO by default");
-                val_enum=0;                        /* -> hardcodded attribution : (default)    -> "Internal" (0) */
-                break;
+                case UCA_CAMERA_TRIGGER_SOURCE_AUTO:
+                    out_index = priv->features.trigger_mode_internal_index;
+                    break;
+                case UCA_CAMERA_TRIGGER_SOURCE_SOFTWARE:
+                    out_index = priv->features.trigger_mode_software_index;
+                    break;
+                case UCA_CAMERA_TRIGGER_SOURCE_EXTERNAL:
+                    out_index = priv->features.trigger_mode_external_index;
+                    break;
+                default:
+                    g_warning("Invalid entry, trigger mode set to AUTO by default");
+                    val_enum=0;
+                    out_index=0;
+                    break;
             }
-            if (write_enum_index(priv, L"TriggerMode", val_enum))
+
+            if (write_enum_index(priv, L"TriggerMode", out_index))
                 priv->trigger_mode = val_enum;
             break;
         case PROP_FRAMERATE:
@@ -1347,7 +1371,24 @@ uca_andor_camera_set_property (GObject *object, guint property_id, const GValue 
             break;
     case PROP_SIMPLE_PRE_AMP_GAIN_CONTROL:     /* handle pixel encoding and bit depth */
         val_enum = g_value_get_enum (value);
-        if (write_enum_index(priv, L"SimplePreAmpGainControl", val_enum))
+
+        out_index = -1;
+        switch (val_enum) {
+            case UCA_ANDOR_CAMERA_SPAGC_11BIT_HIGH_CAPACITY:
+                out_index = priv->features.spagc_11bit_hc_index;
+                break;
+            case UCA_ANDOR_CAMERA_SPAGC_11BIT_LOW_NOISE:
+                out_index = priv->features.spagc_11bit_ln_index;
+                break;
+            case UCA_ANDOR_CAMERA_SPAGC_12BIT:
+                out_index = priv->features.spagc_12bit_index;
+                break;
+            case UCA_ANDOR_CAMERA_SPAGC_16BIT:
+                out_index = priv->features.spagc_16bit_index;
+                break;
+        }
+        
+        if (write_enum_index(priv, L"SimplePreAmpGainControl", out_index))
             priv->simple_pre_amp_gain_control = val_enum;
         break;
     case PROP_SHUTTERING_MODE:
@@ -1362,7 +1403,27 @@ uca_andor_camera_set_property (GObject *object, guint property_id, const GValue 
         break;
     case PROP_PIXEL_READOUT_RATE:
         val_enum = g_value_get_enum (value);
-        if (write_enum_index(priv, L"PixelReadoutRate", val_enum))
+
+        out_index = -1;
+        switch (val_enum) {
+            case UCA_ANDOR_CAMERA_PIXEL_READOUT_RATE_100MHZ:
+                out_index = priv->features.pixel_rate_100mhz_index;
+                break;
+            case UCA_ANDOR_CAMERA_PIXEL_READOUT_RATE_180MHZ:
+                out_index = priv->features.pixel_rate_180mhz_index;
+                break;
+            case UCA_ANDOR_CAMERA_PIXEL_READOUT_RATE_200MHZ:
+                out_index = priv->features.pixel_rate_200mhz_index;
+                break;
+            case UCA_ANDOR_CAMERA_PIXEL_READOUT_RATE_280MHZ:
+                out_index = priv->features.pixel_rate_280mhz_index;
+                break;
+            case UCA_ANDOR_CAMERA_PIXEL_READOUT_RATE_310MHZ:
+                out_index = priv->features.pixel_rate_310mhz_index;
+                break;
+        }
+
+        if (write_enum_index(priv, L"PixelReadoutRate", out_index))
             priv->pixel_readout_rate = val_enum;
         break;
     case PROP_VERTICALLY_CENTRE_AOI:
@@ -1500,34 +1561,14 @@ uca_andor_camera_get_property (GObject *object, guint property_id, GValue *value
             }
             break;
         case PROP_TRIGGER_SOURCE:
-/* NOTE: Libuca's trigger_source enum and andor's TriggerMode enum are different -> need harcodded attribution
- * WARNING : experimentally read enum on actual camera is different from definition in Andor's documentation :
- *    | Index    | LIBUCA    | ANDOR DOC        | ACTUAL CAMERA                |
- *    |-------|---------------|-----------------------|---------------------------------------|
- *    | 0    | AUTO        | Internal        | Internal                |
- *    | 1    | SOFTWARE    | Software        | External Level Transition        |
- *    | 2    | EXTERNAL    | External        | External Start            |
- *    | 3    | (not def.)    | External Start    | External Exposure            |
- *    | 4    | (not def.)    | External Exposure    | Software                |
- *    | 5    | (not def.)    | (not def.)        | Advanced                |
- *    | 6    | (not def.)    | (not def.)        | External                |
- */
             if (read_enum_index (priv, L"TriggerMode", &val_enum)) {
-                switch (val_enum) {        /* Hardcodded attribution (according to experimental readings on actual ANDOR NEO camera) */
-                    case 0:            /* 'Internal'     -> _AUTO     */
-                        break;
-                    case 6:            /* 'External'    -> _EXTERNAL    */
-                        val_enum=2;
-                        break;
-                    case 4:            /* 'Software'    -> _SOFTWARE    */
-                        val_enum=1;
-                        break;
-                    default:
-                        g_warning ("Could not identify Trigger mode of index = %d ; 'Internal' value returned by default",val_enum);
-                        val_enum = 0;    /* (default)    -> _AUTO    */
-                        break;
-                }
-                g_value_set_enum (value, val_enum);
+                if (val_enum == priv->features.trigger_mode_software_index)
+                    priv->trigger_mode = UCA_CAMERA_TRIGGER_SOURCE_SOFTWARE;
+                if (val_enum == priv->features.trigger_mode_external_index)
+                    priv->trigger_mode = UCA_CAMERA_TRIGGER_SOURCE_EXTERNAL;
+                else
+                    priv->trigger_mode = UCA_CAMERA_TRIGGER_SOURCE_AUTO;
+                g_value_set_enum (value, priv->trigger_mode);
             }
             break;
         case PROP_ROI_STRIDE:
@@ -1574,7 +1615,15 @@ uca_andor_camera_get_property (GObject *object, guint property_id, GValue *value
             break;
         case PROP_SIMPLE_PRE_AMP_GAIN_CONTROL:
             if (read_enum_index (priv, L"SimplePreAmpGainControl", &val_enum)) {
-                g_value_set_enum (value, val_enum);
+                if (val_enum == priv->features.spagc_11bit_hc_index)
+                    priv->simple_pre_amp_gain_control = UCA_ANDOR_CAMERA_SPAGC_11BIT_HIGH_CAPACITY;
+                if (val_enum == priv->features.spagc_11bit_ln_index)
+                    priv->simple_pre_amp_gain_control = UCA_ANDOR_CAMERA_SPAGC_11BIT_LOW_NOISE;
+                if (val_enum == priv->features.spagc_12bit_index)
+                    priv->simple_pre_amp_gain_control = UCA_ANDOR_CAMERA_SPAGC_12BIT;
+                if (val_enum == priv->features.spagc_16bit_index)
+                    priv->simple_pre_amp_gain_control = UCA_ANDOR_CAMERA_SPAGC_16BIT;
+                g_value_set_enum (value, priv->simple_pre_amp_gain_control);
             }
             break;
         case PROP_SHUTTERING_MODE:
@@ -1607,8 +1656,19 @@ uca_andor_camera_get_property (GObject *object, guint property_id, GValue *value
                 g_value_set_boolean (value, val_bool);
             break;
         case PROP_PIXEL_READOUT_RATE:
-            if (read_enum_index (priv, L"PixelReadoutRate", &val_enum))
-                g_value_set_enum (value, val_enum);
+            if (read_enum_index (priv, L"PixelReadoutRate", &val_enum)) {
+                if (val_enum == priv->features.pixel_rate_100mhz_index)
+                    priv->pixel_readout_rate = UCA_ANDOR_CAMERA_PIXEL_READOUT_RATE_100MHZ;
+                if (val_enum == priv->features.pixel_rate_180mhz_index)
+                    priv->pixel_readout_rate = UCA_ANDOR_CAMERA_PIXEL_READOUT_RATE_180MHZ;
+                if (val_enum == priv->features.pixel_rate_200mhz_index)
+                    priv->pixel_readout_rate = UCA_ANDOR_CAMERA_PIXEL_READOUT_RATE_200MHZ;
+                if (val_enum == priv->features.pixel_rate_280mhz_index)
+                    priv->pixel_readout_rate = UCA_ANDOR_CAMERA_PIXEL_READOUT_RATE_280MHZ;
+                if (val_enum == priv->features.pixel_rate_310mhz_index)
+                    priv->pixel_readout_rate = UCA_ANDOR_CAMERA_PIXEL_READOUT_RATE_310MHZ;
+                g_value_set_enum (value, priv->pixel_readout_rate);
+            }
             break;
         case PROP_VERTICALLY_CENTRE_AOI:
             if (read_boolean (priv, L"VerticallyCentreAOI", &val_bool))
@@ -1839,7 +1899,7 @@ uca_andor_camera_class_init (UcaAndorCameraClass *klass)
         g_param_spec_enum ("simple-pre-amp-gain-control",
                 "Simple pre amp gain control",
                 "Wrapped feature to handle pixel encoding and bit depth",
-                UCA_TYPE_ANDOR_CAMERA_SPAGC, UCA_ANDOR_CAMERA_SPAGC_11BIT_LOW_NOISE,
+                UCA_TYPE_ANDOR_CAMERA_SPAGC, UCA_ANDOR_CAMERA_SPAGC_16BIT,
                 G_PARAM_READWRITE);
 
     andor_properties [PROP_SHUTTERING_MODE] =
