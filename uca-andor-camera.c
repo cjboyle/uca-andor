@@ -172,7 +172,7 @@ static andor_features_entry andor_features_map[] = {
     /* 2022-04: Marana camera seems to match documentation */
     {CAMERATYPE_MARANA_4B_11,
         0, 1, 2,
-        -1, -1, 1, -1, -1,
+        0, -1, 1, -1, -1,
         -1, -1, 0, 1,
         FALSE, 0, FALSE},
     {CAMERATYPE_MARANA_4B_6,
