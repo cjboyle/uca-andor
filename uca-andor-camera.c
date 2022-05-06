@@ -469,8 +469,18 @@ estimate_max_frame_capacity (UcaAndorCameraPrivate *priv)
  *     NOTE : this is an estimation! (Estimating in 11-bit is quite accurate but in 16-bit it is very pessimistic
  */
 {
-    gfloat memory = INTERNAL_MEMORY;                    /* estimated experimentaly on camera (4GB) */
-    gfloat fullAOISize = priv->calculated_bytes_per_pixel * 2560 * 2160;    /* maximum size of frames when using max ROI size */
+    if (!priv->features.has_internal_memory)
+    {
+        priv->max_frame_capacity = 0.0;
+        return;
+    }
+
+    AT_64 max_width = 0, max_height = 0;
+    AT_GetIntMax(priv->handle, L"AOIWidth", &max_width);
+    AT_GetIntMax(priv->handle, L"AOIHeight", &max_height);
+
+    gfloat memory = priv->features.internal_memory_size;                    /* estimated experimentaly on camera (4GB) */
+    gfloat fullAOISize = priv->calculated_bytes_per_pixel * max_width * max_height;    /* maximum size of frames when using max ROI size */
     gfloat temp = priv->frame_rate_max * memory / (fullAOISize * (priv->frame_rate_max - priv->max_interface_transfer_rate));
     priv->max_frame_capacity = (gint) temp;
 
