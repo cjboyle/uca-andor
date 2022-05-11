@@ -1077,8 +1077,12 @@ AT_EXP_CONV watch_for_MaxInterfaceTransferRate (AT_H Handle, const AT_WC* Featur
                 g_warning("Maximum transfer rate has been modified but frame rate has not been update, resulting in recording slower than needed");
         }
     }
-    else
+    // With Marana, MaxInterfaceTransferRate should already be consistent with FrameRate.
+    // Since FrameRate is not writable, users should be responsible for setting exposure.
+    else if (!is_marana(priv))
+    {
         g_warning("Maximum transfer rate has been modified but frame rate has not been update, resulting in undefined behaviour");
+    }
 
     return 0;
 }
@@ -1667,7 +1671,9 @@ uca_andor_camera_get_property (GObject *object, guint property_id, GValue *value
             g_value_set_int (value, priv->max_frame_capacity);
             break;
         case PROP_FAST_AOI_FRAMERATE_ENABLE:
-            if (read_boolean (priv, L"FastAOIFrameRateEnable", &val_bool))
+            if (is_marana(priv))
+                g_value_set_boolean (value, FALSE);
+            else if (read_boolean (priv, L"FastAOIFrameRateEnable", &val_bool))
                 g_value_set_boolean (value, val_bool);
             break;
         case PROP_PIXEL_READOUT_RATE:
@@ -2373,6 +2379,9 @@ uca_andor_camera_init (UcaAndorCamera *self)
     /* Uca Units attribution (all properties that does not match the UcaUnit enum are just ignored...) */
     uca_camera_register_unit (UCA_CAMERA (self), "sensor-temperature", UCA_UNIT_DEGREE_CELSIUS);
     uca_camera_register_unit (UCA_CAMERA (self), "target-sensor-temperature", UCA_UNIT_DEGREE_CELSIUS);
+
+    if (is_marana(priv))
+        uca_camera_set_writable(UCA_CAMERA (self), "fast-roi-frame-rate-enable", FALSE);
 
     g_free (model);
     g_free (modelchar);
