@@ -22,6 +22,11 @@ include(PkgConfigVars)
 add_definitions("-std=c99 -Wall -fPIC")
 add_definitions(-DG_LOG_DOMAIN="Uca-Andor")
 
+set(ignoreMe "${ZERO_BASED_ROI}")
+if (DEFINED ZERO_BASED_ROI)
+    add_definitions(-DZERO_BASED_ROI -DZERO_BASED_AOI)
+endif (DEFINED ZERO_BASED_ROI)
+
 pkg_check_modules(UCA libuca>=2.1.0 REQUIRED)
 pkg_check_variable(libuca plugindir)
 

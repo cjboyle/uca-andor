@@ -515,10 +515,23 @@ write_integer (UcaAndorCameraPrivate *priv, const AT_WC* property, guint64 value
         return FALSE;
     }
 
+#ifdef ZERO_BASED_ROI
+    if (g_str_equal(property, L"AOILeft") || g_str_equal(property, L"AOITop") || g_str_equal(property, L"AOIWidth") || g_str_equal(property, L"AOIHeight")) {
+        min--;
+        max--;
+    }
+#endif
+
     if ((value < min) || (value > max)) {
         g_warning ("Value %d is out of range for feature %S: current range is [%d ; %d]", (int) value, property, (int) min, (int) max);
         return FALSE;
     }
+
+#ifdef ZERO_BASED_ROI
+    if (g_str_equal(property, L"AOILeft") || g_str_equal(property, L"AOITop") || g_str_equal(property, L"AOIWidth") || g_str_equal(property, L"AOIHeight")) {
+        value++;
+    }
+#endif
 
     error = AT_SetInt (priv->handle, property, value);
 
@@ -544,6 +557,12 @@ read_integer (UcaAndorCameraPrivate *priv, const AT_WC* property, guint64 *value
         g_warning ("Could not read integer '%S': %s (%d)", property, identify_andor_error (error), error);
         return FALSE;
     }
+
+#ifdef ZERO_BASED_ROI
+    if (g_str_equal(property, L"AOILeft") || g_str_equal(property, L"AOITop") || g_str_equal(property, L"AOIWidth") || g_str_equal(property, L"AOIHeight")) {
+        temp--;
+    }
+#endif
 
     *value = temp;
     return TRUE;
