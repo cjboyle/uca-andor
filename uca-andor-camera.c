@@ -2365,15 +2365,9 @@ uca_andor_camera_init (UcaAndorCamera *self)
 
         // debug and show enumerated values
         debug_andor_camera_enum (handle, L"TriggerMode");
-        // debug_andor_camera_enum (handle, L"FanMode");
-        // debug_andor_camera_enum (handle, L"CycleMode");
-        debug_andor_camera_enum (handle, L"PixelEncoding");
         // debug_andor_camera_enum (handle, L"ElectronicShutteringMode");
         debug_andor_camera_enum (handle, L"PixelReadoutRate");
-        debug_andor_camera_enum (handle, L"BitDepth");
         debug_andor_camera_enum (handle, L"SimplePreAmpGainControl");
-        // debug_andor_camera_enum (handle, L"TemperatureStatus");
-        // debug_andor_camera_enum (handle, L"AOIBinning");
     }
 
     /* Uca Units attribution (all properties that does not match the UcaUnit enum are just ignored...) */
