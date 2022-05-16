@@ -518,7 +518,7 @@ write_integer (UcaAndorCameraPrivate *priv, const AT_WC* property, guint64 value
     }
 
 #ifdef ZERO_BASED_ROI
-    if (g_str_equal(property, L"AOILeft") || g_str_equal(property, L"AOITop") || g_str_equal(property, L"AOIWidth") || g_str_equal(property, L"AOIHeight")) {
+    if (g_str_equal(property, L"AOILeft") || g_str_equal(property, L"AOITop")) {
         min--;
         max--;
     }
@@ -530,7 +530,7 @@ write_integer (UcaAndorCameraPrivate *priv, const AT_WC* property, guint64 value
     }
 
 #ifdef ZERO_BASED_ROI
-    if (g_str_equal(property, L"AOILeft") || g_str_equal(property, L"AOITop") || g_str_equal(property, L"AOIWidth") || g_str_equal(property, L"AOIHeight")) {
+    if (g_str_equal(property, L"AOILeft") || g_str_equal(property, L"AOITop")) {
         value++;
     }
 #endif
@@ -561,7 +561,7 @@ read_integer (UcaAndorCameraPrivate *priv, const AT_WC* property, guint64 *value
     }
 
 #ifdef ZERO_BASED_ROI
-    if (g_str_equal(property, L"AOILeft") || g_str_equal(property, L"AOITop") || g_str_equal(property, L"AOIWidth") || g_str_equal(property, L"AOIHeight")) {
+    if (g_str_equal(property, L"AOILeft") || g_str_equal(property, L"AOITop")) {
         temp--;
     }
 #endif
