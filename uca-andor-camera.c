@@ -151,11 +151,13 @@ typedef struct {
     int pixel_rate_200mhz_index;
     int pixel_rate_280mhz_index;
     int pixel_rate_310mhz_index;
+    int pixel_rate_uca_default;
 
     int spagc_11bit_hc_index;
     int spagc_11bit_ln_index;
     int spagc_12bit_index;
     int spagc_16bit_index;
+    int spagc_uca_default;
 
     gboolean has_internal_memory;
     guint64 internal_memory_size;
@@ -166,24 +168,24 @@ static andor_features_entry andor_features_map[] = {
     /* 2017-09: Neo camera trigger enum definition differs from documentation */
     {CAMERATYPE_NEO_55_CL3,
         0, 4, 6, 
-        1, -1, 2, 3, -1,
-        0, 1, -1, 2,
+        1, -1, 2, 3, -1, UCA_ANDOR_CAMERA_PIXEL_READOUT_RATE_100MHZ,
+        0, 1, -1, 2, UCA_ANDOR_CAMERA_SPAGC_11BIT_LOW_NOISE,
         TRUE, 3981262199, TRUE},
     /* 2022-04: Marana camera seems to match documentation */
     {CAMERATYPE_MARANA_4B_11,
         0, 1, 2,
-        -1, -1, 1, -1, -1,
-        -1, -1, 0, 1,
+        -1, -1, 1, -1, -1, UCA_ANDOR_CAMERA_PIXEL_READOUT_RATE_100MHZ,
+        -1, -1, 0, 1, UCA_ANDOR_CAMERA_SPAGC_16BIT,
         FALSE, 0, FALSE},
-    {CAMERATYPE_MARANA_4B_6,
-        0, 1, 2,
-        -1, -1, -1, 0, 1,
-        -1, -1, 0, 1,
-        FALSE, 0, FALSE},
+    // {CAMERATYPE_MARANA_4B_6,
+    //     0, 1, 2,
+    //     -1, -1, -1, 0, 1, UCA_ANDOR_CAMERA_PIXEL_READOUT_RATE_310MHZ,
+    //     -1, -1, 0, 1, UCA_ANDOR_CAMERA_SPAGC_16BIT,
+    //     FALSE, 0, FALSE},
     {CAMERATYPE_UNKNOWN,
         -1, -1, -1,
-        -1, -1, -1, -1, -1,
-        -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, UCA_ANDOR_CAMERA_PIXEL_READOUT_RATE_100MHZ,
+        -1, -1, -1, -1, UCA_ANDOR_CAMERA_SPAGC_16BIT,
         FALSE, 0, FALSE},
 };
 
@@ -1962,7 +1964,7 @@ uca_andor_camera_class_init (UcaAndorCameraClass *klass)
         g_param_spec_enum ("pixel-readout-rate",
                 "pixel readout rate",
                 "The current pixel readout rate",
-                UCA_TYPE_ANDOR_CAMERA_PIXEL_READOUT_RATE, UCA_ANDOR_CAMERA_PIXEL_READOUT_RATE_280MHZ,
+                UCA_TYPE_ANDOR_CAMERA_PIXEL_READOUT_RATE, UCA_ANDOR_CAMERA_PIXEL_READOUT_RATE_100MHZ,
                 G_PARAM_READWRITE);
 
     andor_properties [PROP_VERTICALLY_CENTRE_AOI] =
