@@ -71,6 +71,9 @@ G_DEFINE_TYPE_WITH_CODE (UcaAndorCamera, uca_andor_camera, UCA_TYPE_CAMERA,
 #define METADATA_CID_TICKS          1   /* CID of block containing internal timestamp clock at exposure start */
 #define METADATA_CID_FRAMEINFO      7   /* CID of block containing frame's pixel encoding + AOI stride + AOI height + AOI width */
 
+/* Helper to compare wide char string equality */
+#define WC_STR_EQUAL(wcs1, wcs2) (wcscmp(wcs1, wcs2) == 0)
+
 /**
  * UcaAndorCameraError
  * @ANDOR_NOERROR:
@@ -518,7 +521,7 @@ write_integer (UcaAndorCameraPrivate *priv, const AT_WC* property, guint64 value
     }
 
 #ifdef ZERO_BASED_ROI
-    if (g_str_equal(property, L"AOILeft") || g_str_equal(property, L"AOITop")) {
+    if (WC_STR_EQUAL(property, L"AOILeft") || WC_STR_EQUAL(property, L"AOITop")) {
         min--;
         max--;
     }
@@ -530,7 +533,7 @@ write_integer (UcaAndorCameraPrivate *priv, const AT_WC* property, guint64 value
     }
 
 #ifdef ZERO_BASED_ROI
-    if (g_str_equal(property, L"AOILeft") || g_str_equal(property, L"AOITop")) {
+    if (WC_STR_EQUAL(property, L"AOILeft") || WC_STR_EQUAL(property, L"AOITop")) {
         value++;
     }
 #endif
@@ -561,7 +564,7 @@ read_integer (UcaAndorCameraPrivate *priv, const AT_WC* property, guint64 *value
     }
 
 #ifdef ZERO_BASED_ROI
-    if (g_str_equal(property, L"AOILeft") || g_str_equal(property, L"AOITop")) {
+    if (WC_STR_EQUAL(property, L"AOILeft") || WC_STR_EQUAL(property, L"AOITop")) {
         temp--;
     }
 #endif
