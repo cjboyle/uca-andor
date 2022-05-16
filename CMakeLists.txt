@@ -22,6 +22,13 @@ include(PkgConfigVars)
 add_definitions("-std=c99 -Wall -fPIC")
 add_definitions(-DG_LOG_DOMAIN="Uca-Andor")
 
+set(ignoreMe "${ZERO_BASED_ROI}")
+if (DEFINED ZERO_BASED_ROI)
+    add_definitions(-DZERO_BASED_ROI -DZERO_BASED_AOI)
+endif (DEFINED ZERO_BASED_ROI)
+
+pkg_check_modules(GLIB2 glib-2.0 REQUIRED)
+
 pkg_check_modules(UCA libuca>=2.1.0 REQUIRED)
 pkg_check_variable(libuca plugindir)
 
@@ -32,7 +39,10 @@ include_directories(
     ${CMAKE_CURRENT_BINARY_DIR}
     ${ATCORE_INCLUDE_DIRS}
     ${ATUTILITY_INCLUDE_DIRS}
-    ${UCA_INCLUDE_DIRS})
+    ${UCA_INCLUDE_DIRS}
+    ${GLIB2_INCLUDE_DIRS}
+    ${GLIB2_INCLUDEDIR}/glib-2.0
+    ${GLIB2_LIBDIR}/glib-2.0/include)
 
 glib2_mkenums(uca-andor-enums
 	uca-andor-enums

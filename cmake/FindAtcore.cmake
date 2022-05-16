@@ -9,8 +9,12 @@
 
 find_package(PackageHandleStandardArgs)
 
-find_path(ATCORE_INCLUDE_DIRS atcore.h)
-find_library(ATCORE_LIBRARIES atcore)
+find_path(ATCORE_INCLUDE_DIRS atcore.h
+		"/usr/local/include"
+		"/opt/andor/include")
+find_library(ATCORE_LIBRARIES atcore
+		"/usr/local/lib"
+		"/opt/andor/lib")
 
 find_package_handle_standard_args(ATCORE DEFAULT_MSG ATCORE_LIBRARIES ATCORE_INCLUDE_DIRS)
 
