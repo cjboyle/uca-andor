@@ -1373,8 +1373,12 @@ uca_andor_camera_set_property (GObject *object, guint property_id, const GValue 
                 priv->trigger_mode = (UcaCameraTriggerSource)val_enum;
             break;
         case PROP_FRAMERATE:
+        case PROP_FRAMES_PER_SECOND:
             val_double = g_value_get_double (value);
-            write_double (priv, L"FrameRate", val_double);        /* No need to set priv->frame_rate: a callback already handle this */
+            if (is_marana(priv))
+                g_warning ("Setting FPS directly is not supported.");
+            else
+                write_double (priv, L"FrameRate", val_double);        /* No need to set priv->frame_rate: a callback already handle this */
             break;
         case PROP_TARGET_SENSOR_TEMPERATURE:
             val_double = g_value_get_double (value);
@@ -1618,6 +1622,7 @@ uca_andor_camera_get_property (GObject *object, guint property_id, GValue *value
                 g_value_set_uint (value, val_uint64);
             break;
         case PROP_FRAMERATE:
+        case PROP_FRAMES_PER_SECOND:
             if (read_double (priv, L"FrameRate", &val_double))
                 g_value_set_double (value, val_double);
             break;
@@ -2405,7 +2410,11 @@ uca_andor_camera_init (UcaAndorCamera *self)
     uca_camera_register_unit (UCA_CAMERA (self), "target-sensor-temperature", UCA_UNIT_DEGREE_CELSIUS);
 
     if (is_marana(priv))
+    {
         uca_camera_set_writable(UCA_CAMERA (self), "fast-roi-frame-rate-enable", FALSE);
+        uca_camera_set_writable(UCA_CAMERA (self), "framerate", FALSE);
+        uca_camera_set_writable(UCA_CAMERA (self), "frames-per-second", FALSE);
+    }
 
     g_free (model);
     g_free (modelchar);
