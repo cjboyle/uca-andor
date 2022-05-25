@@ -1090,6 +1090,11 @@ AT_EXP_CONV watch_for_MaxInterfaceTransferRate (AT_H Handle, const AT_WC* Featur
     read_double_max (priv, L"FrameRate", &priv->frame_rate_max);
     estimate_max_frame_capacity(priv);
 
+    // With Marana, MaxInterfaceTransferRate should already be consistent with FrameRate.
+    // Since FrameRate is not writable, users should be responsible for setting exposure.
+    if (is_marana(priv))
+        return 0;
+
     if (check_access (priv, L"FrameRate", CHECK_ACCESS_WRITE, CHECK_ACCESS_WARN)) {
         if (priv->max_interface_transfer_rate <= priv->frame_rate_max) {
             if(!write_double (priv, L"FrameRate", (priv->max_interface_transfer_rate - MARGIN)))
@@ -1101,9 +1106,7 @@ AT_EXP_CONV watch_for_MaxInterfaceTransferRate (AT_H Handle, const AT_WC* Featur
                 g_warning("Maximum transfer rate has been modified but frame rate has not been update, resulting in recording slower than needed");
         }
     }
-    // With Marana, MaxInterfaceTransferRate should already be consistent with FrameRate.
-    // Since FrameRate is not writable, users should be responsible for setting exposure.
-    else if (!is_marana(priv))
+    else
     {
         g_warning("Maximum transfer rate has been modified but frame rate has not been update, resulting in undefined behaviour");
     }
