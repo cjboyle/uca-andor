@@ -182,8 +182,8 @@ static andor_features_entry andor_features_map[] = {
         FALSE, 0, FALSE},
     {CAMERATYPE_MARANA_4B_6,
         0, 1, 2,
-        -1, -1, -1, 0, 1,
-        -1, -1, 0, 1,
+        -1, -1, -1, 0, 1, UCA_ANDOR_CAMERA_PIXEL_READOUT_RATE_310MHZ,
+        -1, -1, 0, 1, UCA_ANDOR_CAMERA_SPAGC_16BIT,
         FALSE, 0, FALSE},
     {CAMERATYPE_UNKNOWN,
         -1, -1, -1,
@@ -262,6 +262,8 @@ struct _UcaAndorCameraPrivate {
     AT_U8*  aligned_buffer;
     AT_64   image_size;             /* full image (frame + padding + metadata if enabled) memory size in bytes */
 
+    guint frame_timeout;
+
     /* Variables used to handle calculation of frame number */
     gint last_frame_number;
     gint last_frame_clock;
@@ -317,6 +319,7 @@ enum {
     PROP_TIMESTAMP_CLOCK,
     PROP_TIMESTAMP_CLOCK_FREQUENCY,
     PROP_METADATA,
+    PROP_FRAME_GRABBER_TIMEOUT,
     N_PROPERTIES
 };
 
@@ -1282,7 +1285,7 @@ uca_andor_camera_grab (UcaCamera *camera, gpointer data, GError **error)
     g_return_val_if_fail (UCA_IS_ANDOR_CAMERA(camera), FALSE);
     priv = UCA_ANDOR_CAMERA_GET_PRIVATE(camera);
 
-    err = AT_WaitBuffer (priv->handle, &buffer, &size, WAIT_BUFFER_TIMEOUT);
+    err = AT_WaitBuffer (priv->handle, &buffer, &size, priv->frame_timeout);
 
     if (!check_error (err, "Could not grab frame", error))
         return FALSE;
@@ -1378,10 +1381,13 @@ uca_andor_camera_set_property (GObject *object, guint property_id, const GValue 
         case PROP_FRAMERATE:
         case PROP_FRAMES_PER_SECOND:
             val_double = g_value_get_double (value);
-            if (is_marana(priv))
-                g_warning ("Setting FPS directly is not supported.");
-            else
+            // if (is_marana(priv))
+            //     g_warning ("Setting FPS directly is not supported.");
+            // else
                 write_double (priv, L"FrameRate", val_double);        /* No need to set priv->frame_rate: a callback already handle this */
+            break;
+        case PROP_FRAME_GRABBER_TIMEOUT:
+            priv->frame_timeout = g_value_get_uint (value) * 1000;
             break;
         case PROP_TARGET_SENSOR_TEMPERATURE:
             val_double = g_value_get_double (value);
@@ -1629,6 +1635,9 @@ uca_andor_camera_get_property (GObject *object, guint property_id, GValue *value
             if (read_double (priv, L"FrameRate", &val_double))
                 g_value_set_double (value, val_double);
             break;
+        case PROP_FRAME_GRABBER_TIMEOUT:
+            g_value_set_uint(value, priv->frame_timeout / 1000.0);
+            break;
         case PROP_SENSOR_TEMPERATURE:
         /* Using priv->sensor_temperature instead val_double of because may change without any other feature of the camera (sensor cooling), so need to update */
             if (read_double (priv, L"SensorTemperature", &priv->sensor_temperature))
@@ -1703,9 +1712,10 @@ uca_andor_camera_get_property (GObject *object, guint property_id, GValue *value
             g_value_set_int (value, priv->max_frame_capacity);
             break;
         case PROP_FAST_AOI_FRAMERATE_ENABLE:
-            if (is_marana(priv))
-                g_value_set_boolean (value, FALSE);
-            else if (read_boolean (priv, L"FastAOIFrameRateEnable", &val_bool))
+            // if (is_marana(priv))
+            //     g_value_set_boolean (value, FALSE);
+            // else
+            if (read_boolean (priv, L"FastAOIFrameRateEnable", &val_bool))
                 g_value_set_boolean (value, val_bool);
             break;
         case PROP_PIXEL_READOUT_RATE:
@@ -1940,6 +1950,13 @@ uca_andor_camera_class_init (UcaAndorCameraClass *klass)
                 "frame rate",
                 "The current frame rate of the camera",
                 0.0001, 100.0, 30.0,
+                G_PARAM_READWRITE);
+
+    andor_properties [PROP_FRAME_GRABBER_TIMEOUT] =
+        g_param_spec_uint ("frame-grabber-timeout",
+                "buffer timeout",
+                "The max time to wait for frames",
+                10, 600, WAIT_BUFFER_TIMEOUT,
                 G_PARAM_READWRITE);
 
     andor_properties [PROP_PIXEL_ENCODING] =
@@ -2411,13 +2428,14 @@ uca_andor_camera_init (UcaAndorCamera *self)
     /* Uca Units attribution (all properties that does not match the UcaUnit enum are just ignored...) */
     uca_camera_register_unit (UCA_CAMERA (self), "sensor-temperature", UCA_UNIT_DEGREE_CELSIUS);
     uca_camera_register_unit (UCA_CAMERA (self), "target-sensor-temperature", UCA_UNIT_DEGREE_CELSIUS);
+    uca_camera_register_unit (UCA_CAMERA (self), "frame-grabber-timeout", UCA_UNIT_SECOND);
 
-    if (is_marana(priv))
-    {
-        uca_camera_set_writable(UCA_CAMERA (self), "fast-roi-frame-rate-enable", FALSE);
-        uca_camera_set_writable(UCA_CAMERA (self), "framerate", FALSE);
-        uca_camera_set_writable(UCA_CAMERA (self), "frames-per-second", FALSE);
-    }
+    // if (is_marana(priv))
+    // {
+    //     uca_camera_set_writable(UCA_CAMERA (self), "fast-roi-frame-rate-enable", FALSE);
+    //     uca_camera_set_writable(UCA_CAMERA (self), "framerate", FALSE);
+    //     uca_camera_set_writable(UCA_CAMERA (self), "frames-per-second", FALSE);
+    // }
 
     g_free (model);
     g_free (modelchar);
