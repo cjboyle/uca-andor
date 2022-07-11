@@ -1956,7 +1956,7 @@ uca_andor_camera_class_init (UcaAndorCameraClass *klass)
         g_param_spec_double ("frame-grabber-timeout",
                 "buffer timeout",
                 "The max time to wait for frames",
-                10, 600, WAIT_BUFFER_TIMEOUT,
+                10, 600, WAIT_BUFFER_TIMEOUT / 1000,
                 G_PARAM_READWRITE);
 
     andor_properties [PROP_PIXEL_ENCODING] =
