@@ -2166,6 +2166,7 @@ uca_andor_camera_init (UcaAndorCamera *self)
     self->priv = priv = UCA_ANDOR_CAMERA_GET_PRIVATE (self);
     priv->construct_error = NULL;
     priv->image_buffer = NULL;
+    priv->frame_timeout = WAIT_BUFFER_TIMEOUT;
 
     error = &(priv->construct_error);
 
