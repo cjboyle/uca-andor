@@ -1387,7 +1387,7 @@ uca_andor_camera_set_property (GObject *object, guint property_id, const GValue 
                 write_double (priv, L"FrameRate", val_double);        /* No need to set priv->frame_rate: a callback already handle this */
             break;
         case PROP_FRAME_GRABBER_TIMEOUT:
-            priv->frame_timeout = g_value_get_uint (value) * 1000;
+            priv->frame_timeout = (guint)(g_value_get_double (value) * 1000);
             break;
         case PROP_TARGET_SENSOR_TEMPERATURE:
             val_double = g_value_get_double (value);
@@ -1636,7 +1636,7 @@ uca_andor_camera_get_property (GObject *object, guint property_id, GValue *value
                 g_value_set_double (value, val_double);
             break;
         case PROP_FRAME_GRABBER_TIMEOUT:
-            g_value_set_uint(value, priv->frame_timeout / 1000.0);
+            g_value_set_double(value, priv->frame_timeout / 1000.0);
             break;
         case PROP_SENSOR_TEMPERATURE:
         /* Using priv->sensor_temperature instead val_double of because may change without any other feature of the camera (sensor cooling), so need to update */
