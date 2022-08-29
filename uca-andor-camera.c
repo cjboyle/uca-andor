@@ -1064,7 +1064,7 @@ AT_EXP_CONV watch_for_BitDepth (AT_H Handle, const AT_WC* Feature, void* Context
 int
 AT_EXP_CONV watch_for_FrameRate (AT_H Handle, const AT_WC* Feature, void* Context)
 /**
- * 'FrameRate' feature specific callback: keep 'frame_rate' propertiy up to date
+ * 'FrameRate' feature specific callback: keep 'frame_rate' property up to date
  * This callback's 2nd argument is mandatory to respect the callback prototype, but actually it MUST NOT be anything else than L"FrameRate"
  * The 'Context' argument MUST contain the (UcaAndorCameraPrivate) priv
  */
@@ -1448,6 +1448,7 @@ uca_andor_camera_set_property (GObject *object, guint property_id, const GValue 
         val_enum = g_value_get_enum (value);
         if (write_enum_index(priv, L"ElectronicShutteringMode", val_enum))
             priv->shuttering_mode = (UcaAndorCameraShutteringMode)val_enum;
+            write_boolean(priv, L"Overlap", priv->shuttering_mode == UCA_ANDOR_CAMERA_SHUTTERING_MODE_ROLLING);
         break;
     case PROP_FAST_AOI_FRAMERATE_ENABLE:
         val_bool = g_value_get_boolean (value);
@@ -1998,7 +1999,7 @@ uca_andor_camera_class_init (UcaAndorCameraClass *klass)
         g_param_spec_double ("max-interface-transfer-rate",
                 "max interface transfer rate",
                 "Maximum transfer rate in 'normal' mode (above, switches to 'burst' mode)",
-                1.0, 100.0, 100.0,
+                1.0, (gdouble)G_MAXINT, 100.0,
                 G_PARAM_READABLE);
 
     andor_properties [PROP_IMAGE_SIZE] =
@@ -2424,6 +2425,11 @@ uca_andor_camera_init (UcaAndorCamera *self)
         // debug_andor_camera_enum (handle, L"ElectronicShutteringMode");
         debug_andor_camera_enum (handle, L"PixelReadoutRate");
         debug_andor_camera_enum (handle, L"SimplePreAmpGainControl");
+
+        if (is_marana(priv)) {
+            error_number = AT_SetBool(handle, L"Overlap", TRUE);
+            check_error (error_number, "Could not set Overlap mode, rolling shutter devices may operate like global shutter", error);
+        }
     }
 
     /* Uca Units attribution (all properties that does not match the UcaUnit enum are just ignored...) */
@@ -2431,12 +2437,10 @@ uca_andor_camera_init (UcaAndorCamera *self)
     uca_camera_register_unit (UCA_CAMERA (self), "target-sensor-temperature", UCA_UNIT_DEGREE_CELSIUS);
     uca_camera_register_unit (UCA_CAMERA (self), "frame-grabber-timeout", UCA_UNIT_SECOND);
 
-    // if (is_marana(priv))
-    // {
-    //     uca_camera_set_writable(UCA_CAMERA (self), "fast-roi-frame-rate-enable", FALSE);
-    //     uca_camera_set_writable(UCA_CAMERA (self), "framerate", FALSE);
-    //     uca_camera_set_writable(UCA_CAMERA (self), "frames-per-second", FALSE);
-    // }
+    if (is_marana(priv))
+    {
+        uca_camera_set_writable(UCA_CAMERA (self), "fast-roi-frame-rate-enable", FALSE);
+    }
 
     g_free (model);
     g_free (modelchar);
