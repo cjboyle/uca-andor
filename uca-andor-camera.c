@@ -1456,7 +1456,7 @@ uca_andor_camera_set_property (GObject *object, guint property_id, const GValue 
         val_enum = g_value_get_enum (value);
         if (write_enum_index(priv, L"ElectronicShutteringMode", val_enum))
             priv->shuttering_mode = (UcaAndorCameraShutteringMode)val_enum;
-            write_boolean(priv, L"Overlap", priv->shuttering_mode == UCA_ANDOR_CAMERA_SHUTTERING_MODE_ROLLING);
+            // write_boolean(priv, L"Overlap", priv->shuttering_mode == UCA_ANDOR_CAMERA_SHUTTERING_MODE_ROLLING);
         break;
     case PROP_FAST_AOI_FRAMERATE_ENABLE:
         val_bool = g_value_get_boolean (value);
@@ -2433,11 +2433,6 @@ uca_andor_camera_init (UcaAndorCamera *self)
         // debug_andor_camera_enum (handle, L"ElectronicShutteringMode");
         debug_andor_camera_enum (handle, L"PixelReadoutRate");
         debug_andor_camera_enum (handle, L"SimplePreAmpGainControl");
-
-        if (is_marana(priv)) {
-            error_number = AT_SetBool(handle, L"Overlap", TRUE);
-            check_error (error_number, "Could not set Overlap mode, rolling shutter devices may operate like global shutter", error);
-        }
     }
 
     /* Uca Units attribution (all properties that does not match the UcaUnit enum are just ignored...) */
