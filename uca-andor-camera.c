@@ -1285,7 +1285,15 @@ uca_andor_camera_grab (UcaCamera *camera, gpointer data, GError **error)
     g_return_val_if_fail (UCA_IS_ANDOR_CAMERA(camera), FALSE);
     priv = UCA_ANDOR_CAMERA_GET_PRIVATE(camera);
 
-    err = AT_WaitBuffer (priv->handle, &buffer, &size, priv->frame_timeout);
+    /* Retry until the true timeout, catching any early stop_recording() signals, to avoid unnecessary freezes at the end of a stream */
+    for (guint i = 0; i < priv->frame_timeout; i += 500) {
+        err = AT_WaitBuffer (priv->handle, &buffer, &size, 500);
+        if (uca_camera_stopped_recording(camera) || err == AT_SUCCESS)
+            break;
+    }
+
+    if (uca_camera_stopped_recording(camera) && err != AT_SUCCESS)
+        return FALSE;
 
     if (!check_error (err, "Could not grab frame", error))
         return FALSE;
